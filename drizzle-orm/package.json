@@ -1,5 +1,5 @@
 {
-	"name": "drizzle-orm",
+	"name": "@anthonyalayo/drizzle-orm",
 	"version": "0.39.1",
 	"description": "Drizzle ORM package for SQL databases",
 	"type": "module",
