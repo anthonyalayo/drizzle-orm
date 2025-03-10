@@ -4,7 +4,7 @@
 		"//#lint": {
 			"dependsOn": [
 				"^test:types",
-				"drizzle-orm#build"
+				"@anthonyalayo/drizzle-orm#build"
 			],
 			"inputs": [
 				"**/*.ts",
@@ -17,8 +17,8 @@
 		"test:types": {
 			"dependsOn": [
 				"^test:types",
-				"drizzle-orm#build",
-				"drizzle-seed#build"
+				"@anthonyalayo/drizzle-orm#build",
+				"@anthonyalayo/drizzle-seed#build"
 			],
 			"inputs": [
 				"src/**/*.ts",
@@ -29,7 +29,7 @@
 			],
 			"outputLogs": "new-only"
 		},
-		"drizzle-orm#build": {
+		"@anthonyalayo/drizzle-orm#build": {
 			"inputs": [
 				"src/**/*.ts",
 				"package.json",
@@ -48,31 +48,9 @@
 			],
 			"outputLogs": "new-only"
 		},
-		"drizzle-kit#build": {
+		"@anthonyalayo/drizzle-kit#build": {
 			"dependsOn": [
-				"drizzle-orm#build"
-			],
-			"inputs": [
-				"src/**/*.ts",
-				"package.json",
-				"README.md",
-				"../README.md",
-				"tsconfig.json",
-				"tsconfig.*.json",
-				"tsup.config.ts",
-				"scripts/build.ts",
-				"scripts/fix-imports.ts",
-				"../tsconfig.json"
-			],
-			"outputs": [
-				"dist/**",
-				"dist-dts/**"
-			],
-			"outputLogs": "new-only"
-		},
-		"drizzle-zod#build": {
-			"dependsOn": [
-				"drizzle-orm#build"
+				"@anthonyalayo/drizzle-orm#build"
 			],
 			"inputs": [
 				"src/**/*.ts",
@@ -92,9 +70,9 @@
 			],
 			"outputLogs": "new-only"
 		},
-		"drizzle-typebox#build": {
+		"@anthonyalayo/drizzle-zod#build": {
 			"dependsOn": [
-				"drizzle-orm#build"
+				"@anthonyalayo/drizzle-orm#build"
 			],
 			"inputs": [
 				"src/**/*.ts",
@@ -114,9 +92,9 @@
 			],
 			"outputLogs": "new-only"
 		},
-		"drizzle-valibot#build": {
+		"@anthonyalayo/drizzle-typebox#build": {
 			"dependsOn": [
-				"drizzle-orm#build"
+				"@anthonyalayo/drizzle-orm#build"
 			],
 			"inputs": [
 				"src/**/*.ts",
@@ -136,9 +114,9 @@
 			],
 			"outputLogs": "new-only"
 		},
-		"eslint-plugin-drizzle#build": {
+		"@anthonyalayo/drizzle-valibot#build": {
 			"dependsOn": [
-				"drizzle-orm#build"
+				"@anthonyalayo/drizzle-orm#build"
 			],
 			"inputs": [
 				"src/**/*.ts",
@@ -158,9 +136,9 @@
 			],
 			"outputLogs": "new-only"
 		},
-		"drizzle-seed#build": {
+		"@anthonyalayo/eslint-plugin-drizzle#build": {
 			"dependsOn": [
-				"drizzle-orm#build"
+				"@anthonyalayo/drizzle-orm#build"
 			],
 			"inputs": [
 				"src/**/*.ts",
@@ -180,10 +158,32 @@
 			],
 			"outputLogs": "new-only"
 		},
-		"integration-tests#build": {
+		"@anthonyalayo/drizzle-seed#build": {
 			"dependsOn": [
-				"drizzle-orm#build",
-				"drizzle-seed#build"
+				"@anthonyalayo/drizzle-orm#build"
+			],
+			"inputs": [
+				"src/**/*.ts",
+				"package.json",
+				"README.md",
+				"../README.md",
+				"tsconfig.json",
+				"tsconfig.*.json",
+				"tsup.config.ts",
+				"scripts/build.ts",
+				"scripts/fix-imports.ts",
+				"../tsconfig.json"
+			],
+			"outputs": [
+				"dist/**",
+				"dist-dts/**"
+			],
+			"outputLogs": "new-only"
+		},
+		"@anthonyalayo/integration-tests#build": {
+			"dependsOn": [
+				"@anthonyalayo/drizzle-orm#build",
+				"@anthonyalayo/drizzle-seed#build"
 			],
 			"inputs": [
 				"src/**/*.ts",

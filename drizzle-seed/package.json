@@ -1,5 +1,5 @@
 {
-	"name": "drizzle-seed",
+	"name": "@anthonyalayo/drizzle-seed",
 	"version": "0.3.1",
 	"main": "index.js",
 	"type": "module",
