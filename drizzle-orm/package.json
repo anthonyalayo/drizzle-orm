@@ -1,6 +1,6 @@
 {
 	"name": "@anthonyalayo/drizzle-orm",
-	"version": "0.39.1",
+	"version": "0.41.0",
 	"description": "Drizzle ORM package for SQL databases",
 	"type": "module",
 	"scripts": {
@@ -16,9 +16,6 @@
 	"module": "./index.js",
 	"types": "./index.d.ts",
 	"sideEffects": false,
-	"publishConfig": {
-		"provenance": true
-	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/drizzle-team/drizzle-orm.git"

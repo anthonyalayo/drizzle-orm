@@ -1,6 +1,6 @@
 {
 	"name": "@anthonyalayo/drizzle-seed",
-	"version": "0.3.1",
+	"version": "0.41.0",
 	"main": "index.js",
 	"type": "module",
 	"scripts": {
@@ -44,9 +44,6 @@
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/drizzle-team/drizzle-orm.git"
-	},
-	"publishConfig": {
-		"provenance": true
 	},
 	"sideEffects": false,
 	"description": "A package to seed your database using Drizzle ORM",
