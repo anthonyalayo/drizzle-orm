@@ -959,14 +959,14 @@ test('optional db aliases (camel case)', async () => {
 });
 
 test('domain with not null and check constraints', async () => {
-	const emailDomain = pgDomain('email', 'text', {
-		notNull: true,
-		checkConstraints: [check('valid_email', sql`VALUE ~ '^[^@]+@[^@]+\.[^@]+$'`)],
-	});
+	const emailDomain = pgDomain(
+		'email_field',
+		text().notNull().checkConstraint('valid_email', sql`VALUE ~ '^[^@]+@[^@]+\.[^@]+$'`),
+	);
 
 	const users = pgTable('users', {
 		id: serial('id').primaryKey(),
-		email: emailDomain(),
+		email: emailDomain('email'),
 	});
 
 	const to = {
@@ -977,12 +977,12 @@ test('domain with not null and check constraints', async () => {
 	const { statements, sqlStatements } = await diffTestSchemas({}, to, []);
 
 	expect(sqlStatements[0]).toContain(
-		`CREATE DOMAIN "public"."email" AS text NOT NULL CONSTRAINT valid_email CHECK (VALUE ~ '^[^@]+@[^@]+\.[^@]+$');`,
+		`CREATE DOMAIN "public"."email_field" AS text NOT NULL CONSTRAINT valid_email CHECK (VALUE ~ '^[^@]+@[^@]+\.[^@]+$');`,
 	);
 
 	const createTableStatement = `CREATE TABLE "users" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"email" "email"
+	"email" "email_field"
 );
 `;
 
@@ -990,15 +990,14 @@ test('domain with not null and check constraints', async () => {
 });
 
 test('domain with default value and check constraints', async () => {
-	const shortTextDomain = pgDomain('short_text', 'text', {
-		notNull: false,
-		defaultValue: 'placeholder',
-		checkConstraints: [check('text_check', sql`(LENGTH(value)) BETWEEN 3 and 30)`)],
-	});
+	const shortTextDomain = pgDomain(
+		'short_text',
+		text().default('placeholder').checkConstraint('text_check', sql`(LENGTH(value)) BETWEEN 3 and 30)`),
+	);
 
 	const users = pgTable('users', {
 		id: serial('id').primaryKey(),
-		first_name: shortTextDomain(),
+		firstName: shortTextDomain('first_name'),
 	});
 
 	const to = {

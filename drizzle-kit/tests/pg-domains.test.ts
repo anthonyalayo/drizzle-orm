@@ -1,11 +1,22 @@
 import { sql } from 'drizzle-orm';
-import { check, integer, pgDomain, pgEnum, pgSchema, pgTable, serial } from 'drizzle-orm/pg-core';
+import {
+	check,
+	integer,
+	numeric,
+	pgDomain,
+	pgEnum,
+	pgSchema,
+	pgTable,
+	serial,
+	text,
+	varchar,
+} from 'drizzle-orm/pg-core';
 import { expect, test } from 'vitest';
 import { diffTestSchemas } from './schemaDiffer';
 
 test('domains #1 create domain simple', async () => {
 	const to = {
-		domain: pgDomain('domain', 'text'),
+		domain: pgDomain('domain', text()),
 	};
 
 	const { statements, sqlStatements } = await diffTestSchemas({}, to, []);
@@ -27,19 +38,19 @@ test('domains #1 create domain simple', async () => {
 test('domains #2 create domain not null', async () => {
 	const folder = pgSchema('folder');
 	const to = {
-		domain: folder.domain('domain', 'varchar', { notNull: true }),
+		domain: folder.domain('domain', varchar({ length: 256 }).notNull()),
 	};
 
 	const { statements, sqlStatements } = await diffTestSchemas({}, to, []);
 
 	expect(sqlStatements.length).toBe(1);
-	expect(sqlStatements[0]).toBe(`CREATE DOMAIN "folder"."domain" AS varchar NOT NULL;`);
+	expect(sqlStatements[0]).toBe(`CREATE DOMAIN "folder"."domain" AS varchar(256) NOT NULL;`);
 	expect(statements.length).toBe(1);
 	expect(statements[0]).toStrictEqual({
 		type: 'create_domain',
 		name: 'domain',
 		schema: 'folder',
-		baseType: 'varchar',
+		baseType: 'varchar(256)',
 		notNull: true,
 		defaultValue: undefined,
 		checkConstraints: [],
@@ -48,7 +59,7 @@ test('domains #2 create domain not null', async () => {
 
 test('domains #3 drop domain simple', async () => {
 	const from = {
-		domain: pgDomain('domain', 'money'),
+		domain: pgDomain('domain', numeric()),
 	};
 
 	const { statements, sqlStatements } = await diffTestSchemas(from, {}, []);
@@ -65,9 +76,7 @@ test('domains #3 drop domain simple', async () => {
 
 test('domains #4 create domain with constraint', async () => {
 	const to = {
-		domain: pgDomain('domain', 'text', {
-			checkConstraints: [check('custom_check', sql`VALUE ~ '^[A-Za-z]+$'`)],
-		}),
+		domain: pgDomain('domain', text().checkConstraint('custom_check', sql`VALUE ~ '^[A-Za-z]+$'`)),
 	};
 
 	const { statements, sqlStatements } = await diffTestSchemas({}, to, []);
@@ -92,9 +101,7 @@ test('domains #4 create domain with constraint', async () => {
 
 test('domains #5 create domain with default value', async () => {
 	const to = {
-		domain: pgDomain('domain', 'integer', {
-			defaultValue: '42',
-		}),
+		domain: pgDomain('domain', integer().default(42)),
 	};
 
 	const { statements, sqlStatements } = await diffTestSchemas({}, to, []);
@@ -110,20 +117,18 @@ test('domains #5 create domain with default value', async () => {
 		schema: 'public',
 		baseType: 'integer',
 		notNull: false,
-		defaultValue: '42',
+		defaultValue: 42,
 		checkConstraints: [],
 	});
 });
 
 test('domains #6 alter domain to add constraint', async () => {
 	const from = {
-		domain: pgDomain('domain', 'text'),
+		domain: pgDomain('domain', text()),
 	};
 
 	const to = {
-		domain: pgDomain('domain', 'text', {
-			checkConstraints: [check('custom_check', sql`VALUE ~ '^[A-Za-z]+$'`)],
-		}),
+		domain: pgDomain('domain', text().checkConstraint('custom_check', sql`VALUE ~ '^[A-Za-z]+$'`)),
 	};
 
 	const { statements, sqlStatements } = await diffTestSchemas(from, to, []);
@@ -146,13 +151,11 @@ test('domains #6 alter domain to add constraint', async () => {
 
 test('domains #7 alter domain to drop constraint', async () => {
 	const from = {
-		domain: pgDomain('domain', 'text', {
-			checkConstraints: [check('domain_check', sql`VALUE ~ '^[A-Za-z]+$'`)],
-		}),
+		domain: pgDomain('domain', text().checkConstraint('domain_check', sql`VALUE ~ '^[A-Za-z]+$'`)),
 	};
 
 	const to = {
-		domain: pgDomain('domain', 'text'),
+		domain: pgDomain('domain', text()),
 	};
 
 	const { statements, sqlStatements } = await diffTestSchemas(from, to, []);
@@ -175,13 +178,11 @@ test('domains #7 alter domain to drop constraint', async () => {
 
 test('domains #8 alter domain to set not null', async () => {
 	const from = {
-		domain: pgDomain('domain', 'text'),
+		domain: pgDomain('domain', text()),
 	};
 
 	const to = {
-		domain: pgDomain('domain', 'text', {
-			notNull: true,
-		}),
+		domain: pgDomain('domain', text().notNull()),
 	};
 
 	const { statements, sqlStatements } = await diffTestSchemas(from, to, []);
@@ -203,13 +204,11 @@ test('domains #8 alter domain to set not null', async () => {
 
 test('domains #9 alter domain to drop not null', async () => {
 	const from = {
-		domain: pgDomain('domain', 'text', {
-			notNull: true,
-		}),
+		domain: pgDomain('domain', text().notNull()),
 	};
 
 	const to = {
-		domain: pgDomain('domain', 'text'),
+		domain: pgDomain('domain', text()),
 	};
 
 	const { statements, sqlStatements } = await diffTestSchemas(from, to, []);
@@ -231,13 +230,11 @@ test('domains #9 alter domain to drop not null', async () => {
 
 test('domains #10 alter domain to set default value', async () => {
 	const from = {
-		domain: pgDomain('domain', 'text'),
+		domain: pgDomain('domain', text()),
 	};
 
 	const to = {
-		domain: pgDomain('domain', 'text', {
-			defaultValue: 'default_value',
-		}),
+		domain: pgDomain('domain', text().default('default_value')),
 	};
 
 	const { statements, sqlStatements } = await diffTestSchemas(from, to, []);
@@ -259,13 +256,11 @@ test('domains #10 alter domain to set default value', async () => {
 
 test('domains #11 alter domain to drop default value', async () => {
 	const from = {
-		domain: pgDomain('domain', 'text', {
-			defaultValue: 'default_value',
-		}),
+		domain: pgDomain('domain', text().default('default_value')),
 	};
 
 	const to = {
-		domain: pgDomain('domain', 'text'),
+		domain: pgDomain('domain', text()),
 	};
 
 	const { statements, sqlStatements } = await diffTestSchemas(from, to, []);
@@ -287,9 +282,7 @@ test('domains #11 alter domain to drop default value', async () => {
 
 test('domains #12 create domain with unnamed constraint', async () => {
 	const to = {
-		domain: pgDomain('domain', 'text', {
-			checkConstraints: [check(sql`VALUE ~ '^[A-Za-z]+$'`)],
-		}),
+		domain: pgDomain('domain', text().checkConstraint(sql`VALUE ~ '^[A-Za-z]+$'`)),
 	};
 
 	const { statements, sqlStatements } = await diffTestSchemas({}, to, []);

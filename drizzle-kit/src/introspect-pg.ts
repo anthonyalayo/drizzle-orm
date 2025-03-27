@@ -321,6 +321,11 @@ export const schemaToTypeScript = (schema: PgSchemaInternal, casing: Casing) => 
 		}),
 	);
 
+	const domainTypes = Object.values(schema.domains).reduce((acc, cur) => {
+		acc.add(`${cur.schema}.${cur.name}`);
+		return acc;
+	}, new Set<string>());
+
 	const enumTypes = Object.values(schema.enums).reduce((acc, cur) => {
 		acc.add(`${cur.schema}.${cur.name}`);
 		return acc;
@@ -415,6 +420,14 @@ export const schemaToTypeScript = (schema: PgSchemaInternal, casing: Casing) => 
 		}
 	});
 
+	Object.values(schema.domains).forEach((it) => {
+		if (it.schema && it.schema !== 'public' && it.schema !== '') {
+			imports.pg.push('pgSchema');
+		} else if (it.schema === 'public') {
+			imports.pg.push('pgDomain');
+		}
+	});
+
 	Object.values(schema.enums).forEach((it) => {
 		if (it.schema && it.schema !== 'public' && it.schema !== '') {
 			imports.pg.push('pgSchema');
@@ -426,6 +439,46 @@ export const schemaToTypeScript = (schema: PgSchemaInternal, casing: Casing) => 
 	if (Object.keys(schema.roles).length > 0) {
 		imports.pg.push('pgRole');
 	}
+
+	const domainStatements = Object.values(schema.domains)
+		.map((it) => {
+			const domainSchema = schemas[it.schema];
+			const paramName = paramNameFor(it.name, domainSchema);
+			const func = domainSchema ? `${domainSchema}.domain` : 'pgDomain';
+
+			// TODO handle all logic by porting from column() function below
+			let type = it.baseType;
+			if (type.startsWith('varchar(') && type.length > 7) {
+				type = `varchar({ length: ${type.substring(8, type.length - 1)}})`;
+			} else {
+				type += '()';
+			}
+
+			// Start with base type function
+			let domainChain = `${func}("${it.name}", ${type}`;
+
+			// Apply chained methods based on properties
+			if (it.notNull) {
+				domainChain += '.notNull()';
+			}
+			if (it.defaultValue) {
+				domainChain += `.default(${it.defaultValue})`;
+			}
+			if (it.checkConstraints && Object.keys(it.checkConstraints).length > 0) {
+				const checkStmts = Object.entries(it.checkConstraints)
+					.map(([, check]) => {
+						return `\n\t.checkConstraint('${check.name}', sql\`${check.value}\`)`;
+					}).join('');
+				domainChain += checkStmts;
+			}
+
+			// Close function chain
+			domainChain += ')';
+
+			return `export const ${withCasing(paramName, casing)} = ${domainChain};\n`;
+		})
+		.join('\n')
+		.concat('\n');
 
 	const enumStatements = Object.values(schema.enums)
 		.map((it) => {
@@ -515,6 +568,7 @@ export const schemaToTypeScript = (schema: PgSchemaInternal, casing: Casing) => 
 			table.name,
 			Object.values(table.columns),
 			Object.values(table.foreignKeys),
+			domainTypes,
 			enumTypes,
 			schemas,
 			casing,
@@ -586,6 +640,7 @@ export const schemaToTypeScript = (schema: PgSchemaInternal, casing: Casing) => 
 				'',
 				Object.values(it.columns),
 				[],
+				domainTypes,
 				enumTypes,
 				schemas,
 				casing,
@@ -612,6 +667,7 @@ import { sql } from "drizzle-orm"\n\n`;
 
 	let decalrations = schemaStatements;
 	decalrations += rolesStatements;
+	decalrations += domainStatements;
 	decalrations += enumStatements;
 	decalrations += sequencesStatements;
 	decalrations += '\n';
@@ -839,7 +895,9 @@ const column = (
 	tableName: string,
 	type: string,
 	name: string,
+	domainTypes: Set<string>,
 	enumTypes: Set<string>,
+	domainTypeSchema: string,
 	typeSchema: string,
 	casing: Casing,
 	defaultValue?: any,
@@ -855,6 +913,11 @@ const column = (
 		return out;
 	}
 
+	if (domainTypes.has(`${domainTypeSchema}.${type}`)) {
+		return `${withCasing(name, casing)}: ${withCasing(type, casing)}(${dbColumnName({ name, casing })})`;
+	}
+
+	// TODO move all of the below into a function so that it can be used for domain serialization
 	if (lowered.startsWith('serial')) {
 		return `${withCasing(name, casing)}: serial(${dbColumnName({ name, casing })})`;
 	}
@@ -1113,6 +1176,7 @@ const createTableColumns = (
 	tableName: string,
 	columns: Column[],
 	fks: ForeignKey[],
+	domainTypes: Set<string>,
 	enumTypes: Set<string>,
 	schemas: Record<string, string>,
 	casing: Casing,
@@ -1139,7 +1203,9 @@ const createTableColumns = (
 			tableName,
 			it.type,
 			it.name,
+			domainTypes,
 			enumTypes,
+			it.domainTypeSchema ?? 'public',
 			it.typeSchema ?? 'public',
 			casing,
 			it.default,

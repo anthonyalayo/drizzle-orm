@@ -197,6 +197,10 @@ export abstract class ColumnBuilder<
 
 	protected config: ColumnBuilderRuntimeConfig<T['data'], TRuntimeConfig>;
 
+	getConfig(): ColumnBuilderRuntimeConfig<T['data'], TRuntimeConfig> {
+		return this.config;
+	}
+
 	constructor(name: T['name'], dataType: T['dataType'], columnType: T['columnType']) {
 		this.config = {
 			name,

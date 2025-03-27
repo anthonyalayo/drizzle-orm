@@ -1,9 +1,9 @@
 import { type Equal, sql } from 'drizzle-orm';
-import { check, integer, pgDomain, pgTable, serial, text } from 'drizzle-orm/pg-core';
+import { integer, pgDomain, pgTable, serial, text } from 'drizzle-orm/pg-core';
 import { test } from 'vitest';
 import { z } from 'zod';
 import { CONSTANTS } from '~/constants.ts';
-import { createSelectSchema } from '../src';
+import { createInsertSchema, createSelectSchema } from '../src';
 import { Expect, expectSchemaShape } from './utils.ts';
 
 // TODO think about what to do with the existing filters being added when check constraints are involved
@@ -15,7 +15,7 @@ test('table containing columns with check constraints', (t) => {
 		id: serial().primaryKey(),
 		firstName: text('first_name')
 			.notNull()
-			.checkConstraint(check('first_name_length', sql`length(first_name) BETWEEN 2 and 100`)),
+			.checkConstraint('first_name_length', sql`length(first_name) BETWEEN 2 and 100`),
 	});
 
 	const result = createSelectSchema(table);
@@ -24,33 +24,75 @@ test('table containing columns with check constraints', (t) => {
 	Expect<Equal<typeof result, typeof expected>>();
 });
 
-// TODO debug test failure, can't figure out why
-// test('table containing custom domain columns', (t) => {
-// 	const shortTextDomain = pgDomain('limited_text', 'text', {
-// 		notNull: true,
-// 		checkConstraints: [check('limited_text_length', sql`(length(value) BETWEEN 3 and 50)`)],
-// 	});
-//
-// 	const table = pgTable('users', {
-// 		id: serial('id').primaryKey(),
-// 		email: shortTextDomain(),
-// 	});
-//
-// 	const result = createSelectSchema(table);
-// 	const expected = z.object({
-// 		id: integerSchema,
-// 		email: textSchema.min(3).max(50),
-// 	});
-//
-// 	expectSchemaShape(t, expected).from(result);
-// 	Expect<Equal<typeof result, typeof expected>>();
-// });
+test('selecting from table containing custom domain columns', (t) => {
+	const shortTextDomain = pgDomain(
+		'limited_text',
+		text().notNull().checkConstraint('limited_text_length', sql`length(value) BETWEEN 3 and 50`),
+	);
+
+	const table = pgTable('users', {
+		id: serial('id').notNull(),
+		email: shortTextDomain(),
+	});
+
+	const result = createSelectSchema(table);
+	const expected = z.object({
+		id: integerSchema,
+		email: textSchema.min(3).max(50),
+	});
+
+	expectSchemaShape(t, expected).from(result);
+	Expect<Equal<typeof result, typeof expected>>();
+});
+
+test('selecting from table containing custom domain columns with complicated postgres syntax', (t) => {
+	const shortTextDomain = pgDomain(
+		'limited_text',
+		text().notNull().checkConstraint(
+			'limited_text_length',
+			sql`CHECK (((length(TRIM(BOTH FROM VALUE)) >= 8) AND (length(TRIM(BOTH FROM VALUE)) <= 64)))`,
+		),
+	);
+
+	const table = pgTable('users', {
+		id: serial('id').notNull(),
+		email: shortTextDomain(),
+	});
+
+	const result = createSelectSchema(table);
+	const expected = z.object({
+		id: integerSchema,
+		email: textSchema.min(8).max(64),
+	});
+
+	expectSchemaShape(t, expected).from(result);
+	Expect<Equal<typeof result, typeof expected>>();
+});
+
+test('inserting into table containing custom domain columns', (t) => {
+	const shortTextDomain = pgDomain(
+		'limited_text',
+		text().notNull().checkConstraint('limited_text_length', sql`(length(value) BETWEEN 3 and 50)`),
+	);
+
+	const table = pgTable('users', {
+		email: shortTextDomain(),
+	});
+
+	const result = createInsertSchema(table);
+	const expected = z.object({
+		email: textSchema.min(3).max(50),
+	});
+
+	expectSchemaShape(t, expected).from(result);
+	Expect<Equal<typeof result, typeof expected>>();
+});
 
 test('table containing column with numeric BETWEEN constraint', (t) => {
 	const table = pgTable('users', {
 		age: integer('age')
 			.notNull()
-			.checkConstraint(check('age_range', sql`age BETWEEN 18 AND 65`)),
+			.checkConstraint('age_range', sql`age BETWEEN 18 AND 65`),
 	});
 
 	const result = createSelectSchema(table);
@@ -64,8 +106,8 @@ test('table containing column with numeric exclusive bounds', (t) => {
 		salary: integer('salary')
 			.notNull()
 			// Using > and < for exclusive bounds
-			.checkConstraint(check('salary_gt', sql`salary > 30000`))
-			.checkConstraint(check('salary_lt', sql`salary < 200000`)),
+			.checkConstraint('salary_gt', sql`salary > 30000`)
+			.checkConstraint('salary_lt', sql`salary < 200000`),
 	});
 
 	const result = createSelectSchema(table);
@@ -79,7 +121,7 @@ test('table containing column with string length BETWEEN constraint', (t) => {
 	const table = pgTable('contacts', {
 		firstName: text('first_name')
 			.notNull()
-			.checkConstraint(check('first_name_length', sql`length(first_name) BETWEEN 2 AND 100`)),
+			.checkConstraint('first_name_length', sql`length(first_name) BETWEEN 2 AND 100`),
 	});
 
 	const result = createSelectSchema(table);
@@ -93,8 +135,8 @@ test('table containing column with string exclusive length constraints', (t) => 
 		code: text('code')
 			.notNull()
 			// Use > for exclusive minimum length and < for exclusive maximum length.
-			.checkConstraint(check('code_min', sql`length(code) > 3`))
-			.checkConstraint(check('code_max', sql`length(code) < 10`)),
+			.checkConstraint('code_min', sql`length(code) > 3`)
+			.checkConstraint('code_max', sql`length(code) < 10`),
 	});
 
 	const result = createSelectSchema(table);
@@ -111,7 +153,7 @@ test('table containing column with LIKE pattern constraint', (t) => {
 		email: text('email')
 			.notNull()
 			// For example, require the email to contain an "@" somewhere.
-			.checkConstraint(check('email_pattern', sql`email LIKE '%@%.%'`)),
+			.checkConstraint('email_pattern', sql`email LIKE '%@%.%'`),
 	});
 
 	const result = createSelectSchema(table);
@@ -130,13 +172,13 @@ test('table containing column with PostgreSQL regex operator constraint', (t) =>
 		username: text('username')
 			.notNull()
 			// Using the PostgreSQL regex operator (~) to enforce a pattern.
-			.checkConstraint(check('username_regex', sql`username ~ '^[a-zA-Z0-9_]+$'`)),
+			.checkConstraint('username_regex', sql`username ~ '^\\w+$'`),
 	});
 
 	const result = createSelectSchema(table);
 	// The expected Zod schema should include a regex refinement for the allowed characters.
 	const expected = z.object({
-		username: z.string().regex(/^[a-zA-Z0-9_]+$/i),
+		username: z.string().regex(/^\w+$/i),
 	});
 	expectSchemaShape(t, expected).from(result);
 	Expect<Equal<typeof result, typeof expected>>();

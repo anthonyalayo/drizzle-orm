@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { getTableName, is, SQL } from 'drizzle-orm';
+import { ColumnBuilderBaseConfig, getTableName, is, SQL } from 'drizzle-orm';
 import {
 	AnyPgTable,
 	getMaterializedViewConfig,
@@ -7,6 +7,7 @@ import {
 	getViewConfig,
 	IndexedColumn,
 	PgColumn,
+	PgColumnBuilder,
 	PgDialect,
 	PgDomain,
 	PgDomainColumn,
@@ -25,6 +26,7 @@ import { vectorOps } from 'src/extensions/vector';
 import { withStyle } from '../cli/validations/outputs';
 import type { IntrospectStage, IntrospectStatus } from '../cli/views';
 import { snapshotVersion } from '../global';
+import { type DB, escapeSingleQuotes, isPgArrayType } from '../utils';
 import {
 	CheckConstraint,
 	Column,
@@ -43,8 +45,7 @@ import {
 	Table,
 	UniqueConstraint,
 	View,
-} from '../serializer/pgSchema';
-import { type DB, escapeSingleQuotes, isPgArrayType } from '../utils';
+} from './pgSchema';
 import { getColumnCasing, sqlToStr } from './utils';
 
 export const indexName = (tableName: string, columns: string[]) => {
@@ -164,13 +165,11 @@ export const generatePgSnapshot = (
 			const primaryKey: boolean = column.primary;
 			const sqlTypeLowered = column.getSQLType().toLowerCase();
 
+			// todo understand this
 			const typeSchema = is(column, PgEnumColumn) ? column.enum.schema || 'public' : undefined;
+			const domainTypeSchema = is(column, PgDomainColumn) ? column.schema : undefined;
 			const generated = column.generated;
 			const identity = column.generatedIdentity;
-			let domainSchema: string | undefined;
-			if (is(column, PgDomainColumn)) {
-				domainSchema = column.domain.schema;
-			}
 			const increment = stringFromIdentityProperty(identity?.sequenceOptions?.increment) ?? '1';
 			const minValue = stringFromIdentityProperty(identity?.sequenceOptions?.minValue)
 				?? (parseFloat(increment) < 0 ? minRangeForIdentityBasedOn(column.columnType) : '1');
@@ -183,8 +182,8 @@ export const generatePgSnapshot = (
 			const columnToSet: Column = {
 				name,
 				type: column.getSQLType(),
-				typeSchema: typeSchema,
-				domainSchema: domainSchema,
+				typeSchema,
+				domainTypeSchema,
 				primaryKey,
 				notNull,
 				generated: generated
@@ -764,6 +763,7 @@ export const generatePgSnapshot = (
 				const sqlTypeLowered = column.getSQLType().toLowerCase();
 
 				const typeSchema = is(column, PgEnumColumn) ? column.enum.schema || 'public' : undefined;
+				// const domainTypeSchema = is(column, PgDomainColumn) ? column.domain : undefined;
 				const generated = column.generated;
 				const identity = column.generatedIdentity;
 
@@ -882,9 +882,10 @@ export const generatePgSnapshot = (
 		// Process check constraints similar to tables
 		const checksObject: Record<string, CheckConstraint> = {};
 
-		obj.checkConstraints?.forEach((checkConstraint, index) => {
+		obj.domainCheckConstraints?.forEach((checkConstraint, index) => {
 			// Validate unique constraint names within domain
-			const domainKey = `"${obj.schema ?? 'public'}"."${obj.domainName}"`;
+			// TODO check old domain name
+			const domainKey = `"${obj.schema ?? 'public'}"."${obj.name}"`;
 
 			// you can have multiple unnamed checks per domain (using the default above)
 			let defaultCheckName = `${obj.domainName}_check`;
@@ -904,13 +905,13 @@ export const generatePgSnapshot = (
 		});
 
 		const domainSchema = obj.schema || 'public';
-		const key = `${domainSchema}.${obj.domainName}`;
+		const key = `${domainSchema}.${obj.name}`;
 		map[key] = {
 			name: obj.domainName,
 			schema: domainSchema,
-			notNull: obj.notNull,
+			notNull: obj.domainNotNull,
 			baseType: obj.domainType,
-			defaultValue: obj.defaultValue,
+			defaultValue: obj.domainDefaultValue,
 			checkConstraints: checksObject,
 		};
 
@@ -1119,11 +1120,16 @@ WHERE
 
 	const whereDomains = schemaFilters.map((t) => `n.nspname = '${t}'`).join(' or ');
 
-	const allDomains = await db.query(
+	const allDomainsConstraints = await db.query(
 		`SELECT
-			 n.nspname AS domain_schema,
-			 t.typname AS domain_name,
+			 n.nspname AS schema,
+			 t.typname AS name,
 			 t.typbasetype::regtype AS base_type,
+			 CASE
+				WHEN t.typbasetype = 'character varying'::regtype AND t.typtypmod <> -1
+				THEN t.typtypmod - 4 
+				ELSE NULL
+             END AS varchar_length,
 			 t.typnotnull AS not_null,
 			 t.typdefault AS default_value,
 			 c.conname AS constraint_name,  -- Get constraint name
@@ -1136,34 +1142,42 @@ WHERE
 			 t.typtype = 'd'
 			 ${whereDomains === '' ? '' : ` AND (${whereDomains})`}
 		 ORDER BY
-			 domain_schema, domain_name;`,
+			 schema, name;`,
 	);
 
 	const domainsToReturn: Record<string, Domain> = {};
 
-	for (const domain of allDomains) {
-		const schemaName = domain.domain_schema || 'public';
-		const key = `${schemaName}.${domain.domain_name}`;
+	for (const domainConstraint of allDomainsConstraints) {
+		const schemaName = domainConstraint.schema || 'public';
+		const key = `${schemaName}.${domainConstraint.name}`;
+		let baseType = domainConstraint.base_type;
+		if (baseType === 'character varying') {
+			baseType = 'varchar';
+
+			if (domainConstraint.varchar_length) {
+				baseType += `(${domainConstraint.varchar_length})`;
+			}
+		}
 
 		if (!domainsToReturn[key]) {
 			domainsToReturn[key] = {
-				name: domain.domain_name,
+				name: domainConstraint.name,
 				schema: schemaName,
-				baseType: domain.base_type,
-				notNull: domain.not_null,
-				defaultValue: domain.default_value,
+				baseType: baseType,
+				notNull: domainConstraint.not_null,
+				defaultValue: domainConstraint.default_value,
 			};
 		}
 
 		// Add the check constraint if present in this row
-		if (domain.constraint_name && domain.domain_constraint) {
+		if (domainConstraint.constraint_name && domainConstraint.domain_constraint) {
 			if (!domainsToReturn[key].checkConstraints) {
 				domainsToReturn[key].checkConstraints = {};
 			}
 
-			domainsToReturn[key].checkConstraints[domain.constraint_name] = {
-				name: domain.constraint_name,
-				value: domain.domain_constraint,
+			domainsToReturn[key].checkConstraints[domainConstraint.constraint_name] = {
+				name: domainConstraint.constraint_name,
+				value: domainConstraint.domain_constraint,
 			};
 		}
 	}
@@ -1577,6 +1591,7 @@ WHERE
 							}
 						}
 
+						// TODO make this available for domain code above as well
 						columnTypeMapped = columnTypeMapped
 							.replace('character varying', 'varchar')
 							.replace(' without time zone', '')

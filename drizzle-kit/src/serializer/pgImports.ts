@@ -31,6 +31,11 @@ export const prepareFromExports = (exports: Record<string, unknown>) => {
 
 	const i0values = Object.values(exports);
 	i0values.forEach((t) => {
+		// TODO confirm this makes sense
+		if (isPgDomain(t)) {
+			domains.push(t);
+		}
+
 		if (isPgEnum(t)) {
 			enums.push(t);
 			return;
