@@ -302,8 +302,10 @@ function generateIdentityParams(identity: Column['identity']) {
 }
 
 export const paramNameFor = (name: string, schema?: string) => {
-	const schemaSuffix = schema && schema !== 'public' ? `In${schema.capitalise()}` : '';
-	return `${name}${schemaSuffix}`;
+	// TODO allow maps to configure suffixes per schema
+	// const schemaSuffix = schema && schema !== 'public' ? `In${schema.capitalise()}` : '';
+	// return `${name}${schemaSuffix}`;
+	return `${name}`;
 };
 
 export const schemaToTypeScript = (schema: PgSchemaInternal, casing: Casing) => {
