@@ -16,17 +16,32 @@ Use npm aliases so all imports (`drizzle-orm`, `drizzle-orm/pg-core`, `drizzle-k
 ```json
 {
 	"dependencies": {
-		"drizzle-orm": "npm:@anthonyalayo/drizzle-orm@^1.1.0",
-		"drizzle-zod": "npm:@anthonyalayo/drizzle-zod@^1.1.0",
-		"drizzle-seed": "npm:@anthonyalayo/drizzle-seed@^1.1.0"
+		"drizzle-orm": "npm:@anthonyalayo/drizzle-orm@^1.2.0",
+		"drizzle-zod": "npm:@anthonyalayo/drizzle-zod@^1.2.0",
+		"drizzle-seed": "npm:@anthonyalayo/drizzle-seed@^1.2.0",
+		"zod": "npm:@anthonyalayo/zod@^4.7.0"
 	},
 	"devDependencies": {
-		"drizzle-kit": "npm:@anthonyalayo/drizzle-kit@^1.1.0"
+		"drizzle-kit": "npm:@anthonyalayo/drizzle-kit@^1.2.0"
 	}
 }
 ```
 
-drizzle-zod 1.1.x targets zod v4 (`zod@^3.25` provides it via `zod/v4`).
+drizzle-zod targets zod v4. The `zod` alias above is optional: stock `zod@^3.25 || ^4` works, while the
+[@anthonyalayo/zod](https://github.com/anthonyalayo/zod) fork adds `schema.update()` for overriding the
+messages of generated schemas (colinhacks/zod#6758):
+
+```ts
+const insertUser = createInsertSchema(users).update({
+	'firstName.min': 'too short', // "path.check"
+	'age.min.18': 'must be an adult', // "path.check.value" picks one of several same-named checks
+	email: 'email must be text', // "path" alone: the field's own type error
+});
+```
+
+Paths descend through object fields, `[]` array elements and wrappers like `.optional()`/`.nullable()`;
+check names are the method names (`min`, `max`, `length`, `gt`, `gte`, `lt`, `lte`, `regex`, `email`,
+`startsWith`, `int`, `refine`, ...). Keys that match nothing throw.
 
 ## Example
 

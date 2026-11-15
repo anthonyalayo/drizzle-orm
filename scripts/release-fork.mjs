@@ -5,10 +5,10 @@
 // only the built dist/package.json is renamed and versioned here, right before packing.
 //
 // Consume with npm aliases so every `import ... from 'drizzle-orm'` keeps working:
-//   "drizzle-orm": "npm:@anthonyalayo/drizzle-orm@^1.1.0"
-//   "drizzle-kit": "npm:@anthonyalayo/drizzle-kit@^1.1.0"
-//   "drizzle-zod": "npm:@anthonyalayo/drizzle-zod@^1.1.0"
-//   "drizzle-seed": "npm:@anthonyalayo/drizzle-seed@^1.1.0"
+//   "drizzle-orm": "npm:@anthonyalayo/drizzle-orm@^1.2.0"
+//   "drizzle-kit": "npm:@anthonyalayo/drizzle-kit@^1.2.0"
+//   "drizzle-zod": "npm:@anthonyalayo/drizzle-zod@^1.2.0"
+//   "drizzle-seed": "npm:@anthonyalayo/drizzle-seed@^1.2.0"
 //
 // usage: node scripts/release-fork.mjs [--publish] [--otp=123456]   (default is a dry run)
 //        expects packages to be built already (`pnpm build`)
@@ -17,7 +17,7 @@ import { copyFileSync, existsSync, readdirSync, readFileSync, rmSync, writeFileS
 import { join } from 'node:path';
 
 const SCOPE = '@anthonyalayo';
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const PACKAGES = ['drizzle-orm', 'drizzle-kit', 'drizzle-zod', 'drizzle-seed'];
 const REPO = 'git+https://github.com/anthonyalayo/drizzle-orm.git';
 
