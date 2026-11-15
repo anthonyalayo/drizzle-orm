@@ -28,9 +28,13 @@ shipped in zod 4.6.x. drizzle-zod is the natural place to solve this for DB-deri
 - [ ] `real` columns compared to literals: values are rounded to float4 but literals are compared as float8
 - [x] Use the CHECK constraint name as the default message/issue metadata for derived rules,
       e.g. `check('first_name_length', ...)` -> issue tagged `first_name_length`
-- [ ] Option on `createInsertSchema`/`createSelectSchema`/`createSchemaFactory`, e.g.
-      `{ messages: { firstName: { min: 'too short', max: 'too long' }, 'first_name_length': '...' } }`
-- [ ] Decide on the API shape (per field+rule vs per constraint name); add type-safe keys
+- [x] API shape decided: `schema.update()` keyed by field + constraint name (zod fork), instead of a
+      `messages` option on `createInsertSchema`
+- [ ] Type-safe `update()` keys
+
+## Next release (unpublished fixes on `pg-domain-revival`)
+- [ ] 1.2.3: LIKE patterns containing `-` threw while building the schema (9bed68a76). No deployed project
+      is affected (dispatchem has no LIKE checks; lecturelab doesn't use drizzle-zod)
 
 ## Known gaps (not yet handled)
 - [x] Arrays of a domain living in a non-public schema (fixed with upstream's array unwrapping)
@@ -40,5 +44,4 @@ shipped in zod 4.6.x. drizzle-zod is the natural place to solve this for DB-deri
 - [ ] Upstream-only test failures seen while verifying (not caused by this fork): drizzle-seed
       `valuesFromArray unique generator test`; drizzle-kit `cli-*` fixture tests; sqlite suites need
       better-sqlite3 built for the local Node
-- [ ] Pull codegen: your old publish branch dropped the `InSchema` suffix from pulled names; 1.1.0 keeps
-      upstream's suffixing (e.g. `emailInApp`). Decide whether to make it configurable
+- [x] Pull codegen suffix is configurable: `introspect: { schemaSuffix: false }` (1.2.1)
