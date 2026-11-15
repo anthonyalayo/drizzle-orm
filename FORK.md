@@ -26,13 +26,13 @@ Use npm aliases so all imports (`drizzle-orm`, `drizzle-orm/pg-core`, `drizzle-k
 ```json
 {
 	"dependencies": {
-		"drizzle-orm": "npm:@anthonyalayo/drizzle-orm@^1.2.2",
+		"drizzle-orm": "npm:@anthonyalayo/drizzle-orm@^1.2.1",
 		"drizzle-zod": "npm:@anthonyalayo/drizzle-zod@^1.2.2",
-		"drizzle-seed": "npm:@anthonyalayo/drizzle-seed@^1.2.2",
+		"drizzle-seed": "npm:@anthonyalayo/drizzle-seed@^1.2.1",
 		"zod": "npm:@anthonyalayo/zod@^4.7.2"
 	},
 	"devDependencies": {
-		"drizzle-kit": "npm:@anthonyalayo/drizzle-kit@^1.2.2"
+		"drizzle-kit": "npm:@anthonyalayo/drizzle-kit@^1.2.1"
 	}
 }
 ```

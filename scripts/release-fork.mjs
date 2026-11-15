@@ -7,10 +7,10 @@
 // Consume with npm aliases so every `import ... from 'drizzle-orm'` keeps working:
 //   "drizzle-orm": "npm:@anthonyalayo/drizzle-orm@^1.2.1"
 //   "drizzle-kit": "npm:@anthonyalayo/drizzle-kit@^1.2.1"
-//   "drizzle-zod": "npm:@anthonyalayo/drizzle-zod@^1.2.1"
+//   "drizzle-zod": "npm:@anthonyalayo/drizzle-zod@^1.2.2"
 //   "drizzle-seed": "npm:@anthonyalayo/drizzle-seed@^1.2.1"
 //
-// usage: node scripts/release-fork.mjs [--publish] [--otp=123456]   (default is a dry run)
+// usage: node scripts/release-fork.mjs [--publish] [--otp=123456] [--only=drizzle-zod,...]   (default is a dry run)
 //        expects packages to be built already (`pnpm build`)
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -22,9 +22,10 @@ const PACKAGES = ['drizzle-orm', 'drizzle-kit', 'drizzle-zod', 'drizzle-seed'];
 const REPO = 'git+https://github.com/anthonyalayo/drizzle-orm.git';
 
 const publish = process.argv.includes('--publish');
+const only = process.argv.find((a) => a.startsWith('--only='))?.slice('--only='.length).split(',');
 const root = new URL('..', import.meta.url).pathname;
 
-for (const pkg of PACKAGES) {
+for (const pkg of PACKAGES.filter((p) => !only || only.includes(p))) {
 	const dir = join(root, pkg);
 	const dist = join(dir, 'dist');
 	if (!existsSync(dist)) throw new Error(`${pkg}: dist/ missing, run \`pnpm build\` first`);
