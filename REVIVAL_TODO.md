@@ -33,7 +33,7 @@ shipped in zod 4.6.x. drizzle-zod is the natural place to solve this for DB-deri
 - [ ] Type-safe `update()` keys
 
 ## Next release (unpublished fixes on `pg-domain-revival`)
-- [ ] 1.2.3: LIKE patterns containing `-` threw while building the schema (9bed68a76). No deployed project
+- [x] 1.2.3: LIKE patterns containing `-` threw while building the schema (9bed68a76). No deployed project
       is affected (dispatchem has no LIKE checks; lecturelab doesn't use drizzle-zod)
 
 ## Known gaps (not yet handled)

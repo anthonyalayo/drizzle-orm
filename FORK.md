@@ -27,7 +27,7 @@ Use npm aliases so all imports (`drizzle-orm`, `drizzle-orm/pg-core`, `drizzle-k
 {
 	"dependencies": {
 		"drizzle-orm": "npm:@anthonyalayo/drizzle-orm@^1.2.1",
-		"drizzle-zod": "npm:@anthonyalayo/drizzle-zod@^1.2.2",
+		"drizzle-zod": "npm:@anthonyalayo/drizzle-zod@^1.2.3",
 		"drizzle-seed": "npm:@anthonyalayo/drizzle-seed@^1.2.1",
 		"zod": "npm:@anthonyalayo/zod@^4.7.2"
 	},
