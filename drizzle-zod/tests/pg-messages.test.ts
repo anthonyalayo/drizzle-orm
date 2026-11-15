@@ -1,4 +1,4 @@
-// requires zod from @anthonyalayo/zod (schema.update(), see colinhacks/zod#6758)
+// requires zod from @anthonyalayo/zod >= 4.7.1 (schema.update() and check names, see colinhacks/zod#6758)
 import { type Equal, sql } from 'drizzle-orm';
 import { integer, pgDomain, pgTable, serial, text, varchar } from 'drizzle-orm/pg-core';
 import { expect, test } from 'vitest';
@@ -19,7 +19,7 @@ test('override messages of generated schemas, including CHECK-derived rules', ()
 
 	const base = createInsertSchema(users);
 	const insert = base.update({
-		'firstName.min': 'too short',
+		'firstName.users_first_name_check': 'too short',
 		'firstName.max': 'too long',
 		'age.min.18': 'must be an adult',
 		'age.max.130': 'not a real age',
@@ -39,9 +39,11 @@ test('override messages of generated schemas, including CHECK-derived rules', ()
 	]);
 	expect(messages(insert, { firstName: 'abc', age: 'old', email: 'a@b' })).toEqual(['age must be a number']);
 	expect(insert.parse({ firstName: 'abc', email: 'a@b' })).toEqual({ firstName: 'abc', email: 'a@b' });
+	// characters, not UTF-16 units: two emoji are 2 characters (too short) even though .length is 4
+	expect(messages(insert, { firstName: '😀😀', email: 'a@b' })).toEqual(['too short']);
 
 	// the original schema keeps zod's default messages
-	expect(messages(base, { firstName: 'ab', email: 'a@b' })?.[0]).not.toBe('too short');
+	expect(messages(base, { firstName: 'ab', email: 'a@b' })).toEqual(['Must be at least 3 characters']);
 	// the select schema can be updated independently
 	expect(messages(createSelectSchema(users).update({ 'age.min.18': 'adult' }), {
 		id: 1,

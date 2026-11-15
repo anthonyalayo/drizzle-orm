@@ -6,8 +6,11 @@ Upstream [drizzle-team/drizzle-orm](https://github.com/drizzle-team/drizzle-orm)
   arrays, and bases of other domains; supported by drizzle-kit `generate` / `migrate` / `push` / `pull` / `export`
   (create, alter default / not null / checks, rename, move schema, drop) and drizzle-seed.
 - **Column-level checks**: `integer().checkConstraint(sql\`...\`)` (named or unnamed) become table constraints.
-- **drizzle-zod rules derived from CHECK constraints** (ranges, lengths, `~`/`~*`, `LIKE`/`ILIKE`, `IN`, `<> ''`).
-  Derived rules may be looser than the database but never stricter.
+- **drizzle-zod rules derived from CHECK constraints** that accept exactly what postgres accepts: comparisons,
+  `BETWEEN`, `AND`/`OR`/`NOT`, `IN`, `IS [NOT] NULL`, `LIKE`/`ILIKE`, `~`/`~*`/`!~`, `length()`/`char_length()`,
+  `trim()`/`btrim()`/`ltrim()`/`rtrim()`, `lower()`/`upper()`, exact decimal comparison for `numeric`. Postgres
+  semantics are kept (TRIM strips spaces only, length counts characters). A differential test checks every rule
+  against a real postgres. Expressions outside that set, or that reference other columns, are left to the database.
 
 ## Install
 
@@ -16,13 +19,13 @@ Use npm aliases so all imports (`drizzle-orm`, `drizzle-orm/pg-core`, `drizzle-k
 ```json
 {
 	"dependencies": {
-		"drizzle-orm": "npm:@anthonyalayo/drizzle-orm@^1.2.0",
-		"drizzle-zod": "npm:@anthonyalayo/drizzle-zod@^1.2.0",
-		"drizzle-seed": "npm:@anthonyalayo/drizzle-seed@^1.2.0",
-		"zod": "npm:@anthonyalayo/zod@^4.7.0"
+		"drizzle-orm": "npm:@anthonyalayo/drizzle-orm@^1.2.1",
+		"drizzle-zod": "npm:@anthonyalayo/drizzle-zod@^1.2.1",
+		"drizzle-seed": "npm:@anthonyalayo/drizzle-seed@^1.2.1",
+		"zod": "npm:@anthonyalayo/zod@^4.7.1"
 	},
 	"devDependencies": {
-		"drizzle-kit": "npm:@anthonyalayo/drizzle-kit@^1.2.0"
+		"drizzle-kit": "npm:@anthonyalayo/drizzle-kit@^1.2.1"
 	}
 }
 ```
@@ -33,11 +36,15 @@ messages of generated schemas (colinhacks/zod#6758):
 
 ```ts
 const insertUser = createInsertSchema(users).update({
-	'firstName.min': 'too short', // "path.check"
+	'firstName.limited_text_check': 'Enter a first name (up to 100 characters)', // by CHECK constraint name
 	'age.min.18': 'must be an adult', // "path.check.value" picks one of several same-named checks
 	email: 'email must be text', // "path" alone: the field's own type error
 });
 ```
+
+Every CHECK-derived rule carries its constraint name (unnamed checks use drizzle-kit's names:
+`<domain>_check`, `<table>_<column>_check`, then `..._check1`, ...) and a readable default message such as
+"Must be at most 100 characters, not counting leading or trailing spaces".
 
 Paths descend through object fields, `[]` array elements and wrappers like `.optional()`/`.nullable()`;
 check names are the method names (`min`, `max`, `length`, `gt`, `gte`, `lt`, `lte`, `regex`, `email`,
@@ -60,6 +67,12 @@ export const users = pgTable('users', {
 	score: integer('score').checkConstraint(sql`score BETWEEN 0 AND 100`),
 });
 ```
+
+## Pull naming
+
+`drizzle-kit pull` suffixes schema-scoped entities with their schema (`userRoleInApp`). Set
+`introspect: { schemaSuffix: false }` in `drizzle.config.ts` to keep plain names (`userRole`); names must then be
+unique across schemas.
 
 ## Releasing
 

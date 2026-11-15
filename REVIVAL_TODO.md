@@ -18,7 +18,10 @@ The issue asked for overriding messages on an existing schema without redefining
 `schema.update({ 'firstName.min': 'too short' })`. It was closed pointing at error maps, and nothing
 shipped in zod 4.6.x. drizzle-zod is the natural place to solve this for DB-derived schemas:
 - [x] zod fork `@anthonyalayo/zod` 4.7.0 with `schema.update({ 'path.check': msg })` (works on drizzle-zod schemas)
-- [ ] Use the CHECK constraint name as the default message/issue metadata for derived rules,
+- [x] CHECK-derived zod rules match postgres exactly (differential test against PGlite), labelled with the
+      constraint name (`update({ 'field.<constraint>': msg })`, zod fork 4.7.1 check names)
+- [ ] Table-level CHECKs across several columns (e.g. `ends_at > starts_at`) as object-level zod refinements
+- [x] Use the CHECK constraint name as the default message/issue metadata for derived rules,
       e.g. `check('first_name_length', ...)` -> issue tagged `first_name_length`
 - [ ] Option on `createInsertSchema`/`createSelectSchema`/`createSchemaFactory`, e.g.
       `{ messages: { firstName: { min: 'too short', max: 'too long' }, 'first_name_length': '...' } }`

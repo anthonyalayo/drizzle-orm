@@ -5,10 +5,10 @@
 // only the built dist/package.json is renamed and versioned here, right before packing.
 //
 // Consume with npm aliases so every `import ... from 'drizzle-orm'` keeps working:
-//   "drizzle-orm": "npm:@anthonyalayo/drizzle-orm@^1.2.0"
-//   "drizzle-kit": "npm:@anthonyalayo/drizzle-kit@^1.2.0"
-//   "drizzle-zod": "npm:@anthonyalayo/drizzle-zod@^1.2.0"
-//   "drizzle-seed": "npm:@anthonyalayo/drizzle-seed@^1.2.0"
+//   "drizzle-orm": "npm:@anthonyalayo/drizzle-orm@^1.2.1"
+//   "drizzle-kit": "npm:@anthonyalayo/drizzle-kit@^1.2.1"
+//   "drizzle-zod": "npm:@anthonyalayo/drizzle-zod@^1.2.1"
+//   "drizzle-seed": "npm:@anthonyalayo/drizzle-seed@^1.2.1"
 //
 // usage: node scripts/release-fork.mjs [--publish] [--otp=123456]   (default is a dry run)
 //        expects packages to be built already (`pnpm build`)
@@ -17,7 +17,7 @@ import { copyFileSync, existsSync, readdirSync, readFileSync, rmSync, writeFileS
 import { join } from 'node:path';
 
 const SCOPE = '@anthonyalayo';
-const VERSION = '1.2.0';
+const VERSION = '1.2.1';
 const PACKAGES = ['drizzle-orm', 'drizzle-kit', 'drizzle-zod', 'drizzle-seed'];
 const REPO = 'git+https://github.com/anthonyalayo/drizzle-orm.git';
 
@@ -46,6 +46,8 @@ for (const pkg of PACKAGES) {
 	manifest.repository = { type: 'git', url: REPO };
 	// provenance needs a CI OIDC identity; this is published from a workstation
 	delete manifest.publishConfig;
+	// consumers never install devDependencies, and they may point at local test builds
+	delete manifest.devDependencies;
 	writeFileSync(manifestPath, JSON.stringify(manifest, null, '\t') + '\n');
 
 	for (const f of readdirSync(dir)) if (f.endsWith('.tgz')) rmSync(join(dir, f));
