@@ -6,8 +6,8 @@ the latest upstream `main`, published as `@anthonyalayo/drizzle-*`.
 ## In progress
 - [x] Fix bugs found in review of `pg-domain-support` (ORM mapping, kit generate/push/pull, zod parser)
 - [x] Keep snapshot format at v7 (v8 bump made the second `generate` exit with "unsupported version")
-- [ ] Rebase onto `upstream/main` in chunks, tests green after each chunk
-- [ ] Publish `@anthonyalayo/drizzle-orm`, `-kit`, `-zod`, `-seed`
+- [x] Rebase onto `upstream/main` in chunks, tests green after each chunk (6 chunks, now on 3bcb6a27e, 2026-11-13)
+- [x] Publish `@anthonyalayo/drizzle-orm`, `-kit`, `-zod`, `-seed` 1.1.0 (`scripts/release-fork.mjs`, see FORK.md)
 
 ## zod v4 (latest: 4.6.7)
 - [x] Port `drizzle-zod/src/checks.ts` to zod v4 (upstream moved drizzle-zod to `zod/v4` in May 2025)
@@ -26,4 +26,10 @@ shipped in zod 4.6.x. drizzle-zod is the natural place to solve this for DB-deri
 ## Known gaps (not yet handled)
 - [x] Arrays of a domain living in a non-public schema (fixed with upstream's array unwrapping)
 - [ ] `$defaultFn`/`$onUpdateFn` set on the builder wrapped by a domain aren't applied to the domain column
-- [ ] drizzle-seed support for domain columns
+- [x] drizzle-seed support for domain columns (seeded as their base type)
+- [ ] drizzle-seed doesn't respect CHECK constraints (domain or table) when generating values
+- [ ] Upstream-only test failures seen while verifying (not caused by this fork): drizzle-seed
+      `valuesFromArray unique generator test`; drizzle-kit `cli-*` fixture tests; sqlite suites need
+      better-sqlite3 built for the local Node
+- [ ] Pull codegen: your old publish branch dropped the `InSchema` suffix from pulled names; 1.1.0 keeps
+      upstream's suffixing (e.g. `emailInApp`). Decide whether to make it configurable
