@@ -20,7 +20,12 @@ shipped in zod 4.6.x. drizzle-zod is the natural place to solve this for DB-deri
 - [x] zod fork `@anthonyalayo/zod` 4.7.0 with `schema.update({ 'path.check': msg })` (works on drizzle-zod schemas)
 - [x] CHECK-derived zod rules match postgres exactly (differential test against PGlite), labelled with the
       constraint name (`update({ 'field.<constraint>': msg })`, zod fork 4.7.1 check names)
-- [ ] Table-level CHECKs across several columns (e.g. `ends_at > starts_at`) as object-level zod refinements
+- [x] Table-level CHECKs across several columns (e.g. `ends_at > starts_at`) as object-level zod refinements
+      (1.2.2; zod fork 4.7.2 keyed refinements keep them through pick/omit/partial/extend)
+- [x] Table-level single-column CHECKs (e.g. `messages_body_check`) as field rules (1.2.2)
+- [ ] CHECKs on a column or domain that reject NULL (`x IS NOT NULL ...`) are applied inside `.nullable()`, so a
+      NULL for a nullable column still passes zod (table checks handle this; NOT NULL is the usual way to say it)
+- [ ] `real` columns compared to literals: values are rounded to float4 but literals are compared as float8
 - [x] Use the CHECK constraint name as the default message/issue metadata for derived rules,
       e.g. `check('first_name_length', ...)` -> issue tagged `first_name_length`
 - [ ] Option on `createInsertSchema`/`createSelectSchema`/`createSchemaFactory`, e.g.

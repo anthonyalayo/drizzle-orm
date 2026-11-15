@@ -17,7 +17,7 @@ import { copyFileSync, existsSync, readdirSync, readFileSync, rmSync, writeFileS
 import { join } from 'node:path';
 
 const SCOPE = '@anthonyalayo';
-const VERSION = '1.2.1';
+const VERSION = '1.2.2';
 const PACKAGES = ['drizzle-orm', 'drizzle-kit', 'drizzle-zod', 'drizzle-seed'];
 const REPO = 'git+https://github.com/anthonyalayo/drizzle-orm.git';
 
